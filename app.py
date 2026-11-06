@@ -273,6 +273,10 @@ def init_db():
             ("ff", "Free Fire Info", "🎮",
              "https://infoextracted.vercel.app/accinfo?uid={term}",
              "", "uid", 17, now_iso()))
+    # force-fix: ff URL aur enabled ensure (old DB me wrong data ho sakta hai)
+    conn.execute(
+        "UPDATE endpoints SET url_template='https://infoextracted.vercel.app/accinfo?uid={term}',"
+        " term_param='uid', enabled=1 WHERE slug='ff'")
     # migration: upi endpoint (Airtel paydigi unauth VPA verify — keyless)
     if not conn.execute("SELECT 1 x FROM endpoints WHERE slug='upi'").fetchone():
         conn.execute(
@@ -288,6 +292,8 @@ def init_db():
             " VALUES(?,?,?,?,?,?,?,?)",
             ("imei", "IMEI Info", "📲",
              "", "", "imei", 15, now_iso()))
+    # force-fix: imei enabled ensure (old DB me disabled ho sakta hai)
+    conn.execute("UPDATE endpoints SET enabled=1 WHERE slug='imei'")
     # migration: tg endpoint -> {param} placeholder (auto username/userid)
     conn.execute(
         "UPDATE endpoints SET url_template='https://tele-to-phone.felixrdx.xyz/api/developer/Cyb3rB4nn3r/fast?key={upstream_key}&{param}={term}', "
@@ -388,6 +394,13 @@ def init_db():
             "INSERT INTO api_keys(key,client,note,allowed,usage_mode,is_active,created_at)"
             " VALUES(?,?,?,?,?,?,?)",
             ("DEMO123", "Demo", "Auto-seeded demo key — delete it after testing",
+             "all", "unlimited", 1, now_iso()))
+    # seed aurahehe key (internal bot key — group.py uses this for all API calls)
+    if not conn.execute("SELECT 1 FROM api_keys WHERE key='aurahehe'").fetchone():
+        conn.execute(
+            "INSERT INTO api_keys(key,client,note,allowed,usage_mode,is_active,created_at)"
+            " VALUES(?,?,?,?,?,?,?)",
+            ("aurahehe", "GroupBot Internal", "Internal key for Telegram group bot — unlimited access",
              "all", "unlimited", 1, now_iso()))
     # default admin
     if conn.execute("SELECT COUNT(*) c FROM admins").fetchone()["c"] == 0:
